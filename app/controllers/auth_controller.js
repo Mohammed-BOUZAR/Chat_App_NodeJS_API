@@ -11,12 +11,14 @@ module.exports.login = async (req, res) => {
       .status(STATUS_CODE.NOT_FOUND)
       .json({ message: "Invalid email or password" });
   let token = await user.createAuthAccessTokens();
-  return res.status(STATUS_CODE.OK).json({ token, user });
+  return res
+    .status(STATUS_CODE.OK)
+    .json({ message: "You loggedIn with success", token, user });
 };
 
 module.exports.register = async (req, res) => {
   let { username, email, phone, password, image } = req.body;
-  let [ user, isCreated ] = await User.findOrCreate({
+  let [user, isCreated] = await User.findOrCreate({
     where: {
       [Op.or]: [{ email }, { phone }],
     },
@@ -27,7 +29,9 @@ module.exports.register = async (req, res) => {
       .status(STATUS_CODE.BAD_REQUEST)
       .json({ message: "User already exists" });
   // user = await User.create({ username, email, phone, password });
-  return res.status(STATUS_CODE.CREATED).json({ user });
+  return res
+    .status(STATUS_CODE.CREATED)
+    .json({ message: "Created with successfull", user });
 };
 
 module.exports.logout = async (req, res) => {
@@ -36,6 +40,8 @@ module.exports.logout = async (req, res) => {
   let accessToken = user.auth_access_tokens.find((accessToken) =>
     bcrypt.compareSync(token, accessToken.hashToken)
   );
+  if (!accessToken)
+    return res.status(STATUS_CODE.NOT_FOUND).json({ message: "Invalid token" });
   await accessToken.destroy();
-  return res.status(STATUS_CODE.OK).json({ message: "Logout success" });
+  return res.status(STATUS_CODE.OK).json({ message: "Logout with success" });
 };

@@ -5,11 +5,17 @@ const Message = require("#models/message");
 const { Op } = require("sequelize");
 
 module.exports.getMessages = async (req, res) => {
-  let messages = await Message.findAll({ include: Participant });
+  let messages = await Message.findAll({
+    include: Participant,
+    where: { chatId: req.params.chatId },
+    order: [["createdAt", "ASC"]],
+  });
   return res.status(STATUS_CODE.OK).json({ messages });
 };
 module.exports.getMessage = async (req, res) => {
-  let message = await Message.findByPk(req.params.id);
+  let message = await Message.findByPk(req.params.id, {
+    include: User,
+  });
   if (!message)
     return res
       .status(STATUS_CODE.NOT_FOUND)
@@ -23,9 +29,10 @@ module.exports.postMessage = async (req, res) => {
     return res
       .status(STATUS_CODE.NOT_FOUND)
       .json({ message: "Chat not found" });
-  let participant = await chat.getParticipants({
+  let participant = await Participant.findOne({
     where: {
-      [Op.not]: [{ userId: req.user.id }],
+      userId: req.user.id,
+      chatId: chat.id,
     },
   });
   if (!participant)
@@ -36,6 +43,9 @@ module.exports.postMessage = async (req, res) => {
     message,
     participantId: participant.id,
     chatId: chat.id,
+  });
+  _message = await Message.findByPk(_message.id, {
+    include: Participant,
   });
   return res.status(STATUS_CODE.CREATED).json({ _message });
 };

@@ -32,7 +32,12 @@ User.prototype.createAuthAccessTokens = async function () {
 User.prototype.createChat = async function (name, userId) {
   let participant1 = await Participant.findOne({ where: { userId: this.id } });
   let participant2 = await Participant.findOne({ where: { userId } });
-  if (participant1 && participant2 && (participant1.chatId == participant2.chatId)) return false;
+  if (
+    participant1 !== null &&
+    participant2 !== null &&
+    participant1?.chatId === participant2?.chatId
+  )
+    return false;
   let chat = await Chat.create({ name });
   await Participant.create({ userId: this.id, chatId: chat.id });
   await Participant.create({ userId, chatId: chat.id });

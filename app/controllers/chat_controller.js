@@ -7,16 +7,12 @@ const { Op } = require("sequelize");
 module.exports.getChats = async (req, res) => {
   let user = await User.findByPk(req.user.id);
   let chats = await user.getChats();
+  // loop for all chats and add participants to each chat
   for (let i = 0; i < chats.length; i++) {
-    let c = await Participant.findOne({
-      where: {
-        chatId: chats[i].Participant.chatId,
-        [Op.not]: { userId: user.id },
-      },
-      include: { model: User },
+    let Participant = await chats[i].getUsers({
+      where: { id: { [Op.not]: [req.user.id] } },
     });
-    if (chats[i].name == null || chats[i].name == "")
-      chats[i].name = c.User.username;
+    chats[i].dataValues.Participant = Participant[0];
   }
   return res.status(STATUS_CODE.OK).json({ chats });
 };
@@ -26,7 +22,8 @@ module.exports.getChat = async (req, res) => {
       model: User,
       through: {
         model: Participant,
-        where: { [Op.not]: [{ userId: req.user.id }] },
+        where: { userId: req.user.id },
+        // where: { [Op.not]: [{ userId: req.user.id }] },
       },
     },
   });
@@ -49,7 +46,13 @@ module.exports.postChat = async (req, res) => {
       .status(STATUS_CODE.NOT_FOUND)
       .json({ message: "User not found" });
   let chat = await user.createChat(name, userId);
-  return res.status(STATUS_CODE.CREATED).json({ chat });
+  if (chat === false)
+    return res
+      .status(STATUS_CODE.CONFLICT)
+      .json({ message: "The chat wasn't added!" });
+  return res
+    .status(STATUS_CODE.CREATED)
+    .json({ message: "The chat was added!" });
 };
 module.exports.putChat = async (req, res) => {
   let chat = await Chat.findByPk(req.params.id);
